@@ -1,0 +1,322 @@
+#panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 300px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+  overflow: visible;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+#panel.panel--collapsed {
+  width: auto;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.collapse-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.panel-body {
+  padding: 12px 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Waypoint drag-and-drop row */
+.waypoint-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.drag-handle {
+  background: none;
+  border: none;
+  cursor: grab;
+  color: #9ca3af;
+  font-size: 16px;
+  padding: 4px 2px;
+  margin-top: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.drag-handle:hover {
+  color: #374151;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.waypoint-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 11px;
+  padding: 4px 4px;
+  margin-top: 22px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.remove-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.add-stop-btn {
+  width: 100%;
+  background: none;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.add-stop-btn:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Route info */
+.route-info {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.route-info__title {
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.route-info__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: #374151;
+}
+
+.route-info__total {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 4px;
+  padding-top: 6px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Nearest airport card */
+.airport-card {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 8px 0;
+}
+
+.airport-card__title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #92400e;
+  margin-bottom: 6px;
+}
+
+.airport-card__btn {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.airport-card__btn:hover .airport-card__name {
+  text-decoration: underline;
+}
+
+.airport-card__iata {
+  font-size: 14px;
+  font-weight: 700;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+.airport-card__name {
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.airport-card__dist {
+  font-size: 11px;
+  color: #78716c;
+}
+
+.panel-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 10px 0;
+}
+
+/* Settings */
+.settings {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.settings__label {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.settings__option {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+/* Panel bottom controls */
+.panel-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.ctrl-btn {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  transition: background 0.15s;
+}
+
+.ctrl-btn:hover {
+  background: #f3f4f6;
+}
+
+.ctrl-btn--danger {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+}
+
+.ctrl-btn--danger:hover {
+  background: #fee2e2;
+}
+
+/* ── Mobile: bottom sheet ───────────────────────────────────────────── */
+@media (max-width: 639px) {
+  #panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 75vh;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  #panel.panel--collapsed {
+    width: 100%;
+  }
+
+  /* Drag handle hint at top of sheet */
+  .panel-header::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #d1d5db;
+  }
+
+  .panel-header {
+    position: relative;
+    padding-top: 20px;
+    justify-content: space-between;
+  }
+
+  .panel-body {
+    max-height: calc(75vh - 56px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide desktop info box on mobile — panel is already at the bottom */
+  #info-box {
+    display: none;
+  }
+}

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apps — Vahalia</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 20px 40px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    header a {
+      font-size: 13px;
+      color: #64748b;
+      text-decoration: none;
+    }
+
+    header a:hover { color: #0f172a; }
+
+    .site-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 40px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border-color: #cbd5e1;
+    }
+
+    .card-icon {
+      font-size: 32px;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .more-toggle {
+      color: #3b82f6;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .more-toggle:hover {
+      text-decoration: underline;
+    }
+
+    .more-text {
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    footer a { color: inherit; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <span class="site-name">Vahalia</span>
+    <a href="https://www.vahalia.com">← vahalia.com</a>
+  </header>
+
+  <main>
+    <h1>Apps</h1>
+    <p class="subtitle">Personal tools and experiments.</p>
+
+    <div class="grid">
+
+      <a class="card" href="/great-circles/">
+        <span class="card-icon">🌍</span>
+        <div class="card-title">Great Circles</div>
+        <div class="card-desc">
+          Explore the globe, plan great-circle routes, and find the antipode of any location.
+          <span class="more-toggle" onclick="event.preventDefault(); this.parentElement.querySelector('.more-text').style.display='inline'; this.style.display='none';">… more</span>
+          <span class="more-text">
+            Search by city, address, or landmark, switch between 3D globe and flat map
+            views, and see a ghosted overlay of the far side of the Earth through the globe.
+            Multi-stop routes show distances per segment and in total.
+          </span>
+        </div>
+      </a>
+
+      <!-- Add more app cards here as needed -->
+
+    </div>
+  </main>
+
+  <footer>
+    <a href="https://www.vahalia.com">vahalia.com</a>
+  </footer>
+
+</body>
+</html>

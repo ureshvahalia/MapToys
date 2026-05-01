@@ -1,0 +1,149 @@
+:root {
+  --track-size: 80px;
+}
+
+/* ---- Positioning --------------------------------------------------------- */
+
+.timeline-track {
+  position: absolute;
+  z-index: 10;
+  background: rgba(12, 16, 28, 0.92);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+
+.timeline-track.edge-bottom {
+  bottom: 0; left: 0; right: 0;
+  height: var(--track-size);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.timeline-track.edge-top {
+  top: 0; left: 0; right: 0;
+  height: var(--track-size);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.timeline-track.edge-left {
+  top: 0; bottom: 0; left: 0;
+  width: var(--track-size);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.timeline-track.edge-right {
+  top: 0; bottom: 0; right: 0;
+  width: var(--track-size);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Grip handle --------------------------------------------------------- */
+
+.tl-grip {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.tl-grip:hover  { color: rgba(255, 255, 255, 0.65); background: rgba(255,255,255,0.06); }
+.tl-grip:active { cursor: grabbing; color: rgba(255, 255, 255, 0.90); }
+
+/* Horizontal tracks: left end, vertically centred */
+.timeline-track.edge-top .tl-grip,
+.timeline-track.edge-bottom .tl-grip {
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 36px;
+}
+
+/* Vertical tracks: vertically centred (away from corners where other controls live) */
+.timeline-track.edge-left .tl-grip,
+.timeline-track.edge-right .tl-grip {
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  width: 36px;
+  height: 24px;
+}
+
+/* ---- Ghost overlay (portal'd into document.body) ------------------------ */
+
+.tl-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(80, 140, 255, 0.18);
+  border: 2px dashed rgba(100, 160, 255, 0.65);
+}
+
+.tl-ghost-top    { top: 0;    left: 0; right: 0; height: var(--track-size); }
+.tl-ghost-bottom { bottom: 0; left: 0; right: 0; height: var(--track-size); }
+.tl-ghost-left   { top: 0; bottom: 0; left: 0;   width:  var(--track-size); }
+.tl-ghost-right  { top: 0; bottom: 0; right: 0;  width:  var(--track-size); }
+
+/* ---- Edge-switcher overlay ---------------------------------------------- */
+
+.tl-edge-switcher {
+  position: absolute;
+  display: flex;
+  gap: 3px;
+  padding: 3px 4px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  z-index: 2;
+  /* Hidden by default so they never overlap with SVG handles;
+     revealed on track hover so the user can still click them */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.timeline-track:hover .tl-edge-switcher {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Horizontal tracks: left side next to grip, vertically centred */
+.timeline-track.edge-top .tl-edge-switcher,
+.timeline-track.edge-bottom .tl-edge-switcher {
+  flex-direction: row;
+  left: 36px;   /* clear of the grip handle at left: 6px, width: 24px */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Vertical tracks: bottom, horizontally centred */
+.timeline-track.edge-left .tl-edge-switcher,
+.timeline-track.edge-right .tl-edge-switcher {
+  flex-direction: column;
+  bottom: 40px;  /* clear of grip which is centred; arrow buttons go near bottom */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tl-edge-btn {
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tl-edge-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}

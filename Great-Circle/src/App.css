@@ -1,0 +1,88 @@
+#app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+#map-wrapper {
+  position: absolute;
+  inset: 0;
+}
+
+/* Main interactive map — sits below the antipodal layer */
+#map-main {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Airport marker — custom circular pin */
+.airport-marker-pin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f59e0b;
+  border: 2.5px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s;
+}
+
+.airport-marker-pin:hover {
+  background: #d97706;
+  transform: scale(1.2);
+}
+
+/* Dismissible info box — bottom-left, above map controls */
+#info-box {
+  position: absolute;
+  bottom: 32px;
+  left: 16px;
+  width: 300px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 16px 36px 16px 16px;
+  z-index: 10;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+#info-box em {
+  font-style: italic;
+  color: #111827;
+}
+
+#info-box-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+#info-box-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Antipodal ghost map — stacked on top at low opacity so main map shows through.
+   scaleY(-1) flips the rendering so it tracks with the main map in both axes:
+   the antipodal center has negated latitude, so without the flip the NS motion
+   would appear reversed. */
+#map-antipodal {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.28;
+  pointer-events: none;
+  transform: scaleY(-1);
+}
