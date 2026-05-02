@@ -1,4 +1,4 @@
-name: Build Installers
+name: Build TimeMap Installers
 
 # Runs automatically on version tags (e.g. v1.0.0) or manually via the Actions tab.
 # Produces a Windows .exe installer and a macOS .dmg, then attaches them to a GitHub Release.
@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write   # needed to create/update GitHub Releases
 
+defaults:
+  run:
+    working-directory: TimeMap   # all steps run inside the TimeMap subdirectory
+
 jobs:
   build:
     strategy:
@@ -19,12 +23,12 @@ jobs:
         include:
           - os: windows-latest
             script: dist:win
-            artifact_path: electron/release/*.exe
+            artifact_path: TimeMap/electron/release/*.exe
             artifact_name: TimeMap-Windows
 
           - os: macos-latest
             script: dist:mac
-            artifact_path: electron/release/*.dmg
+            artifact_path: TimeMap/electron/release/*.dmg
             artifact_name: TimeMap-Mac
 
     runs-on: ${{ matrix.os }}
