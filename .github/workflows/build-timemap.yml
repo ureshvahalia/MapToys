@@ -28,7 +28,7 @@ jobs:
 
           - os: macos-latest
             script: dist:mac
-            artifact_path: TimeMap/electron/release/*.dmg
+            artifact_path: TimeMap/electron/release/*.zip
             artifact_name: TimeMap-Mac
 
     runs-on: ${{ matrix.os }}
@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm run install:all
