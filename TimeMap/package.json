@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",
-    "install:all": "npm --prefix frontend install && npm --prefix backend install && npm --prefix electron install",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install && cd ../electron && npm install",
     "build": "npm --prefix frontend run build",
     "build:backend": "tsc --project backend/tsconfig.json",
     "build:electron": "tsc --project electron/tsconfig.json",
