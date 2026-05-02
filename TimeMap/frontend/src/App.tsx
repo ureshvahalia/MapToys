@@ -6,7 +6,7 @@ import { DetailPanel } from './components/DetailPanel/DetailPanel';
 import { ImportPanel } from './components/ImportPanel/ImportPanel';
 import { ImportStatusBar } from './components/ImportStatusBar/ImportStatusBar';
 import { CollectionsPanel } from './components/CollectionsPanel/CollectionsPanel';
-import { fetchArtifacts, cancelImportJob, previewUrl } from './services/api';
+import { fetchArtifacts, cancelImportJob } from './services/api';
 import type { ArtifactFeature, ArtifactProperties, ImportJob } from './services/api';
 import type { Projection, TrackEdge } from './types';
 import './App.css';
@@ -33,7 +33,7 @@ export default function App() {
   const fetchTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timeWindow      = useRef({ start: new Date('2024-01-01'), end: new Date('2026-01-01') });
   const visibleFeatures = useRef<ArtifactFeature[]>([]);
-  const prefetchAbort   = useRef<AbortController | null>(null);
+  const fetchAbort      = useRef<AbortController | null>(null);
 
   const [projection,    setProjection]    = useState<Projection>('globe');
   const [trackEdge,     setTrackEdge]     = useState<TrackEdge>(() =>
@@ -60,6 +60,10 @@ export default function App() {
     const source = map.getSource('artifacts') as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
 
+    fetchAbort.current?.abort();
+    fetchAbort.current = new AbortController();
+    const signal = fetchAbort.current.signal;
+
     const b = map.getBounds();
     try {
       const data = await fetchArtifacts({
@@ -69,24 +73,10 @@ export default function App() {
         maxLng:      b.getEast(),
         windowStart: timeWindow.current.start.toISOString(),
         windowEnd:   timeWindow.current.end.toISOString(),
-      });
+      }, signal);
+      if (signal.aborted) return;
       visibleFeatures.current = data.features;
       source.setData(data as GeoJSON.FeatureCollection);
-
-      // Read-ahead: pre-generate previews for visible individual dots
-      if (map.getZoom() > 12 && data.features.length > 0) {
-        prefetchAbort.current?.abort();
-        prefetchAbort.current = new AbortController();
-        const signal = prefetchAbort.current.signal;
-        const ids = data.features.map(f => f.properties.id);
-        let i = 0;
-        const next = () => {
-          if (signal.aborted || i >= ids.length) return;
-          const id = ids[i++];
-          fetch(previewUrl(id), { signal }).then(next, next);
-        };
-        next(); next(); // 2 concurrent lanes
-      }
     } catch (err) {
       console.warn('Artifact fetch failed:', err);
     }
@@ -270,7 +260,7 @@ export default function App() {
     mapRef.current = map;
     return () => {
       if (fetchTimer.current) clearTimeout(fetchTimer.current);
-      prefetchAbort.current?.abort();
+      fetchAbort.current?.abort();
       popup.remove();
       map.remove();
       mapRef.current = null;
@@ -298,14 +288,23 @@ export default function App() {
   };
 
   // ---- Detail panel prev/next --------------------------------------------
-  const detailIdx  = selectedProps !== null
-    ? visibleFeatures.current.findIndex(f => f.properties.id === selectedProps.id)
+  // Filter against current viewport bounds at render time so that stale or
+  // wide-bounds fetch data never leaks into the navigation chain.
+  const bounds = mapRef.current?.getBounds() ?? null;
+  const navFeatures = bounds
+    ? visibleFeatures.current.filter(f =>
+        bounds.contains([f.properties.longitude, f.properties.latitude])
+      )
+    : visibleFeatures.current;
+
+  const detailIdx = selectedProps !== null
+    ? navFeatures.findIndex(f => f.properties.id === selectedProps.id)
     : -1;
   const prevId = detailIdx > 0
-    ? visibleFeatures.current[detailIdx - 1].properties.id
+    ? navFeatures[detailIdx - 1].properties.id
     : null;
-  const nextId = detailIdx >= 0 && detailIdx < visibleFeatures.current.length - 1
-    ? visibleFeatures.current[detailIdx + 1].properties.id
+  const nextId = detailIdx >= 0 && detailIdx < navFeatures.length - 1
+    ? navFeatures[detailIdx + 1].properties.id
     : null;
 
   const handleNavigate = (id: number) => {

@@ -34,7 +34,7 @@ export interface ViewportParams {
   collectionId?: number;
 }
 
-export async function fetchArtifacts(params: ViewportParams): Promise<ArtifactsGeoJSON> {
+export async function fetchArtifacts(params: ViewportParams, signal?: AbortSignal): Promise<ArtifactsGeoJSON> {
   const query = new URLSearchParams({
     minLat:      params.minLat.toString(),
     maxLat:      params.maxLat.toString(),
@@ -44,7 +44,7 @@ export async function fetchArtifacts(params: ViewportParams): Promise<ArtifactsG
     windowEnd:   params.windowEnd,
     ...(params.collectionId != null && { collectionId: params.collectionId.toString() }),
   });
-  const res = await fetch(`${API_BASE}/artifacts?${query}`);
+  const res = await fetch(`${API_BASE}/artifacts?${query}`, { signal });
   if (!res.ok) throw new Error(`Artifacts fetch failed: ${res.status}`);
   return res.json() as Promise<ArtifactsGeoJSON>;
 }

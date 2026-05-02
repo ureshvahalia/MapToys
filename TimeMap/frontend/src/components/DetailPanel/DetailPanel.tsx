@@ -1,10 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { previewUrl, thumbnailUrl } from '../../services/api';
+import { useEffect } from 'react';
+import { thumbnailUrl, photoUrl } from '../../services/api';
 import type { ArtifactProperties } from '../../services/api';
 import './DetailPanel.css';
-
-// Module-level: survives component remounts
-const loadedPreviews = new Set<number>();
 
 interface Props {
   feature: ArtifactProperties;
@@ -15,20 +12,6 @@ interface Props {
 }
 
 export function DetailPanel({ feature, prevId, nextId, onClose, onNavigate }: Props) {
-  // Derived synchronously — no useEffect lag. False the instant feature.id changes.
-  const [loadedId, setLoadedId] = useState<number | null>(null);
-  const previewReady = loadedId === feature.id;
-
-  // Capture whether this photo was already loaded BEFORE we began loading it.
-  // Must run in render (not useEffect) so it reads the set before onLoad fires.
-  const prevIdRef = useRef<number | null>(null);
-  const wasPreloadedRef = useRef(false);
-  if (prevIdRef.current !== feature.id) {
-    prevIdRef.current = feature.id;
-    wasPreloadedRef.current = loadedPreviews.has(feature.id);
-  }
-  const wasPreloaded = wasPreloadedRef.current;
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
@@ -47,29 +30,18 @@ export function DetailPanel({ feature, prevId, nextId, onClose, onNavigate }: Pr
       <button className="detail-close" onClick={onClose} title="Close (Esc)">✕</button>
 
       <div className="detail-photo-wrap">
-        {/* Blurred placeholder — always visible until onLoad fires */}
-        {feature.thumbnail_path && (
-          <img
-            className={`detail-thumb-bg${previewReady ? ' detail-thumb-bg-hide' : ''}`}
-            src={thumbnailUrl(feature.id)}
-            alt=""
-          />
-        )}
-        {/* Preview: fades in on first view, appears instantly on revisit */}
-        <img
-          key={feature.id}
-          className={`detail-photo${
-            previewReady
-              ? (wasPreloaded ? ' detail-photo-instant' : ' detail-photo-ready')
-              : ''
-          }`}
-          src={previewUrl(feature.id)}
-          alt={feature.title || 'Photo'}
-          onLoad={() => {
-            loadedPreviews.add(feature.id);
-            setLoadedId(feature.id);
-          }}
-        />
+        {feature.thumbnail_path
+          ? <img className="detail-thumb" src={thumbnailUrl(feature.id)} alt={feature.title || 'Photo'} />
+          : <div className="detail-thumb-missing" />
+        }
+        <a
+          className="detail-view-full"
+          href={photoUrl(feature.id)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View full
+        </a>
       </div>
 
       <div className="detail-meta">
