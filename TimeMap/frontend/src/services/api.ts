@@ -66,7 +66,7 @@ export function previewUrl(artifactId: number): string {
 export interface StartImportParams {
   type:              'folder' | 'digikam';
   collection:        string;
-  source?:           string;
+  sources?:          string[];
   digikamPath?:      string;
   digikamRoot?:      string;
   albumFilter?:      string;
@@ -150,6 +150,28 @@ export async function resetImportData(): Promise<void> {
     const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string };
     throw new Error(err.error ?? res.statusText);
   }
+}
+
+// ---- Collections API --------------------------------------------------------
+
+export interface CollectionSource {
+  directory: string;
+  count:     number;
+}
+
+export interface CollectionOverview {
+  id:             number;
+  name:           string;
+  description:    string;
+  created_at:     string;
+  artifact_count: number;
+  sources:        CollectionSource[];
+}
+
+export async function fetchCollectionsOverview(): Promise<CollectionOverview[]> {
+  const res = await fetch(`${API_BASE}/collections/overview`);
+  if (!res.ok) throw new Error(`Collections fetch failed: ${res.status}`);
+  return res.json() as Promise<CollectionOverview[]>;
 }
 
 // ---- Filesystem browser API -------------------------------------------------

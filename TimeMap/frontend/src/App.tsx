@@ -4,8 +4,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { TimelineTrack } from './components/TimelineTrack/TimelineTrack';
 import { DetailPanel } from './components/DetailPanel/DetailPanel';
 import { ImportPanel } from './components/ImportPanel/ImportPanel';
-import { fetchArtifacts, previewUrl } from './services/api';
-import type { ArtifactFeature, ArtifactProperties } from './services/api';
+import { ImportStatusBar } from './components/ImportStatusBar/ImportStatusBar';
+import { CollectionsPanel } from './components/CollectionsPanel/CollectionsPanel';
+import { fetchArtifacts, cancelImportJob, previewUrl } from './services/api';
+import type { ArtifactFeature, ArtifactProperties, ImportJob } from './services/api';
 import type { Projection, TrackEdge } from './types';
 import './App.css';
 
@@ -38,7 +40,18 @@ export default function App() {
     (localStorage.getItem('timeline-edge') as TrackEdge | null) ?? 'bottom'
   );
   const [selectedProps, setSelectedProps] = useState<ArtifactProperties | null>(null);
-  const [showImport,    setShowImport]    = useState(false);
+
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+
+  // ---- Import panel + background status bar ----------------------------------
+  const [importOpen,    setImportOpen]    = useState(false);   // overlay visible
+  const [importRunning, setImportRunning] = useState(false);   // keep component mounted
+  const [importStatus,  setImportStatus]  = useState<{
+    jobId:      string;
+    job:        ImportJob | null;
+    phase:      'running' | 'done' | 'cancelled' | 'error';
+    collection: string;
+  } | null>(null);
 
   // ---- Artifact fetch -------------------------------------------------------
   const doFetch = useCallback(async () => {
@@ -88,6 +101,27 @@ export default function App() {
     timeWindow.current = { start, end };
     scheduleFetch();
   }, [scheduleFetch]);
+
+  const handleJobStarted = useCallback((jobId: string, collection: string) => {
+    setImportOpen(false);
+    setImportRunning(true);
+    setImportStatus({ jobId, job: null, phase: 'running', collection });
+  }, []);
+
+  const handleJobUpdate = useCallback((
+    job: ImportJob | null,
+    phase: 'running' | 'done' | 'cancelled' | 'error',
+    collection: string,
+  ) => {
+    setImportStatus(prev =>
+      prev ? { ...prev, job, phase } : { jobId: '', job, phase, collection }
+    );
+  }, []);
+
+  const handleJobEnded = useCallback(() => {
+    setImportRunning(false);
+    setImportStatus(null);
+  }, []);
 
   // ---- Map init ------------------------------------------------------------
   useEffect(() => {
@@ -293,7 +327,17 @@ export default function App() {
         </button>
         <button
           className="import-toggle"
-          onClick={() => setShowImport(v => !v)}
+          onClick={() => setCollectionsOpen(v => !v)}
+          title="View imported collections"
+        >
+          Collections
+        </button>
+        <button
+          className="import-toggle"
+          onClick={() => {
+            setImportOpen(v => !v);
+            if (!importRunning) setImportRunning(false);
+          }}
           title="Import photos"
         >
           Import
@@ -313,10 +357,31 @@ export default function App() {
           onNavigate={handleNavigate}
         />
       )}
-      {showImport && (
+      {collectionsOpen && (
+        <CollectionsPanel onClose={() => setCollectionsOpen(false)} />
+      )}
+      {(importOpen || importRunning) && (
         <ImportPanel
-          onClose={() => setShowImport(false)}
+          visible={importOpen}
+          onClose={() => setImportOpen(false)}
           onMapRefresh={doFetch}
+          onJobStarted={handleJobStarted}
+          onJobUpdate={handleJobUpdate}
+          onJobEnded={handleJobEnded}
+        />
+      )}
+      {importStatus && (
+        <ImportStatusBar
+          collection={importStatus.collection}
+          job={importStatus.job}
+          phase={importStatus.phase}
+          onDetails={() => { setImportRunning(true); setImportOpen(true); }}
+          onCancel={async () => {
+            if (importStatus.jobId) {
+              try { await cancelImportJob(importStatus.jobId); } catch { /* ignore */ }
+            }
+          }}
+          onDismiss={() => { setImportRunning(false); setImportStatus(null); }}
         />
       )}
     </div>

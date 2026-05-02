@@ -4,8 +4,15 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "concurrently -n frontend,backend -c cyan,magenta \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",
-    "install:all": "npm --prefix frontend install && npm --prefix backend install",
+    "install:all": "npm --prefix frontend install && npm --prefix backend install && npm --prefix electron install",
     "build": "npm --prefix frontend run build",
+    "build:backend": "tsc --project backend/tsconfig.json",
+    "build:electron": "tsc --project electron/tsconfig.json",
+    "build:all": "npm run build && npm run build:backend && npm run build:electron",
+    "electron:dev": "npm run build:backend && npm run build:electron && npm --prefix electron run dev",
+    "dist": "npm run build:all && npm --prefix electron run dist",
+    "dist:win": "npm run build:all && npm --prefix electron run dist:win",
+    "dist:mac": "npm run build:all && npm --prefix electron run dist:mac",
     "typecheck": "npm --prefix frontend run typecheck && npm --prefix backend run typecheck"
   },
   "devDependencies": {

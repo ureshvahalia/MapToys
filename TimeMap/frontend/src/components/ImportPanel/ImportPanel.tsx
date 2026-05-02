@@ -17,14 +17,20 @@ type ImportType  = 'folder' | 'digikam';
 type PanelPhase  = 'form' | 'running' | 'done' | 'cancelled' | 'error';
 
 interface Props {
-  onClose:      () => void;
-  onMapRefresh: () => void;
+  visible:       boolean;
+  onClose:       () => void;
+  onMapRefresh:  () => void;
+  onJobStarted:  (jobId: string, collection: string) => void;
+  onJobUpdate?:  (job: ImportJob | null, phase: Exclude<PanelPhase, 'form'>, collection: string) => void;
+  onJobEnded?:   () => void;
 }
 
-export function ImportPanel({ onClose, onMapRefresh }: Props) {
+export function ImportPanel({
+  visible, onClose, onMapRefresh, onJobStarted, onJobUpdate, onJobEnded,
+}: Props) {
   // ---- Form state ------------------------------------------------------------
   const [importType,   setImportType]   = useState<ImportType>('folder');
-  const [source,       setSource]       = useState('');
+  const [sources,      setSources]      = useState<string[]>([]);
   const [digikamPath,  setDigikamPath]  = useState('');
   const [digikamRoot,  setDigikamRoot]  = useState('');
   const [albumFilter,  setAlbumFilter]  = useState('');
@@ -34,17 +40,16 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
   const [includeNoGps, setIncludeNoGps] = useState(false);
 
   // ---- File browser ----------------------------------------------------------
-  type BrowserTarget = 'source' | 'digikamPath' | 'digikamRoot';
+  type BrowserTarget = 'sourceAdd' | 'digikamPath' | 'digikamRoot';
   const [browserFor, setBrowserFor] = useState<BrowserTarget | null>(null);
 
-  const handleBrowserSelect = (selectedPath: string) => {
-    if (browserFor === 'source')      setSource(selectedPath);
-    if (browserFor === 'digikamPath') { setDigikamPath(selectedPath); setShowAlbums(false); }
-    if (browserFor === 'digikamRoot') setDigikamRoot(selectedPath);
+  const handleBrowserSelect = (paths: string[]) => {
+    if (browserFor === 'sourceAdd')   setSources(prev => [...prev, ...paths]);
+    if (browserFor === 'digikamPath') { setDigikamPath(paths[0] ?? ''); setShowAlbums(false); }
+    if (browserFor === 'digikamRoot') setDigikamRoot(paths[0] ?? '');
     setBrowserFor(null);
   };
 
-  // Strip filename from a path to get its containing directory
   const dirOf = (p: string) => p.replace(/[\\/][^\\/]*$/, '') || '';
 
   // ---- Album browser ---------------------------------------------------------
@@ -58,12 +63,18 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
   const [jobId,    setJobId]    = useState<string | null>(null);
   const [job,      setJob]      = useState<ImportJob | null>(null);
   const [startErr, setStartErr] = useState<string | null>(null);
-  const [reloading,   setReloading]   = useState(false);
-  const [resetting,   setResetting]   = useState(false);
-  const [resetError,  setResetError]  = useState<string | null>(null);
+  const [reloading,  setReloading]  = useState(false);
+  const [resetting,  setResetting]  = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
-  const logRef    = useRef<HTMLDivElement>(null);
-  const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const logRef  = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Stable refs for callbacks (avoids stale closures in setInterval)
+  const onJobUpdateRef = useRef(onJobUpdate);
+  useEffect(() => { onJobUpdateRef.current = onJobUpdate; }, [onJobUpdate]);
+  const collectionRef = useRef(collection);
+  useEffect(() => { collectionRef.current = collection; }, [collection]);
 
   // ---- Polling ---------------------------------------------------------------
   useEffect(() => {
@@ -71,15 +82,16 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
     pollRef.current = setInterval(async () => {
       try {
         const j = await fetchImportJob(jobId);
+        const newPhase: Exclude<PanelPhase, 'form'> =
+          j.status === 'done'      ? 'done'      :
+          j.status === 'cancelled' ? 'cancelled' :
+          j.status === 'error'     ? 'error'     : 'running';
         setJob(j);
-        if (j.status === 'done')      setPhase('done');
-        if (j.status === 'cancelled') setPhase('cancelled');
-        if (j.status === 'error')     setPhase('error');
+        setPhase(newPhase);
+        onJobUpdateRef.current?.(j, newPhase, collectionRef.current);
       } catch { /* keep polling */ }
     }, 500);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [jobId, phase]);
 
   // Auto-scroll log
@@ -114,7 +126,7 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
       inferGps,
       includeNoGps,
       ...(importType === 'folder'
-        ? { source }
+        ? { sources }
         : {
             digikamPath,
             digikamRoot,
@@ -128,6 +140,9 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
       setJobId(id);
       setJob(null);
       setPhase('running');
+      onJobUpdate?.(null, 'running', collection);
+      // Hand off to parent — overlay will be hidden, status bar will appear
+      onJobStarted(id, collection);
     } catch (err) {
       setStartErr(String(err));
     }
@@ -165,6 +180,12 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
     }
   };
 
+  // ---- Back: return to form after job complete --------------------------------
+  const handleBack = () => {
+    setPhase('form');
+    onJobEnded?.();
+  };
+
   // ---- Progress bar ----------------------------------------------------------
   const progressPct = job && job.progress.total > 0
     ? Math.round((job.progress.done / job.progress.total) * 100)
@@ -173,9 +194,12 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
   // ---- Validation ------------------------------------------------------------
   const canStart = collection.trim() !== '' && (
     importType === 'folder'
-      ? source.trim() !== ''
+      ? sources.length > 0 && sources.every(s => s.trim() !== '')
       : digikamPath.trim() !== '' && digikamRoot.trim() !== ''
   );
+
+  // ---- Hidden while job runs in background -----------------------------------
+  if (!visible) return null;
 
   // ---- Render ----------------------------------------------------------------
   return (
@@ -209,25 +233,41 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
             <div className="import-form">
 
               {importType === 'folder' && (
-                <label className="import-field">
-                  <span>Source directory</span>
-                  <div className="import-input-row">
-                    <input
-                      type="text"
-                      value={source}
-                      onChange={e => setSource(e.target.value)}
-                      placeholder="/path/to/photos"
-                      spellCheck={false}
-                    />
+                <div className="import-field">
+                  <span>Source directories</span>
+                  <div className="import-source-list">
+                    {sources.map((src, i) => (
+                      <div key={i} className="import-source-item">
+                        <input
+                          type="text"
+                          value={src}
+                          onChange={e => {
+                            const next = [...sources];
+                            next[i] = e.target.value;
+                            setSources(next);
+                          }}
+                          placeholder="C:\path\to\photos"
+                          spellCheck={false}
+                        />
+                        <button
+                          type="button"
+                          className="import-source-remove"
+                          onClick={() => setSources(sources.filter((_, j) => j !== i))}
+                          title="Remove this folder"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
-                      className="import-field-browse-btn"
-                      onClick={() => setBrowserFor('source')}
+                      className="import-source-add-btn"
+                      onClick={() => setBrowserFor('sourceAdd')}
                     >
-                      Browse…
+                      + Add folder
                     </button>
                   </div>
-                </label>
+                </div>
               )}
 
               {importType === 'digikam' && (
@@ -387,7 +427,6 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
         {(phase === 'running' || phase === 'done' || phase === 'cancelled' || phase === 'error') && (
           <div className="import-progress-section">
 
-            {/* Phase + progress bar */}
             <div className="import-phase-row">
               <span className="import-phase-label">
                 {phase === 'done'      ? 'Done'
@@ -397,7 +436,7 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
               </span>
               {job && job.progress.total > 0 && (
                 <span className="import-phase-count">
-                  {job.progress.done}/{job.progress.total}
+                  {job.progress.done.toLocaleString()}&thinsp;/&thinsp;{job.progress.total.toLocaleString()}
                 </span>
               )}
             </div>
@@ -409,7 +448,6 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
               />
             </div>
 
-            {/* Log */}
             <div className="import-log" ref={logRef}>
               {(job?.log ?? []).map((line, i) => (
                 <div key={i} className="import-log-line">{line}</div>
@@ -419,7 +457,6 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
               )}
             </div>
 
-            {/* Stats summary */}
             {phase === 'done' && job?.stats && (
               <div className="import-stats">
                 <div className="import-stat"><span>Imported</span><strong>{job.stats.imported}</strong></div>
@@ -441,8 +478,8 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
                 </button>
               )}
               {(phase === 'done' || phase === 'cancelled' || phase === 'error') && (
-                <button className="import-btn-secondary" onClick={() => setPhase('form')}>
-                  ← Back
+                <button className="import-btn-secondary" onClick={handleBack}>
+                  ← New import
                 </button>
               )}
               {(phase === 'done' || phase === 'cancelled') && job?.stats && job.stats.imported > 0 && (
@@ -464,8 +501,9 @@ export function ImportPanel({ onClose, onMapRefresh }: Props) {
         <FileBrowser
           mode={browserFor === 'digikamPath' ? 'file' : 'directory'}
           fileExt={browserFor === 'digikamPath' ? '.db' : undefined}
+          multiSelect={browserFor === 'sourceAdd'}
           initialPath={
-            browserFor === 'source'      ? source :
+            browserFor === 'sourceAdd'   ? (sources[sources.length - 1] ?? '') :
             browserFor === 'digikamPath' ? (digikamPath ? dirOf(digikamPath) : '') :
             digikamRoot
           }

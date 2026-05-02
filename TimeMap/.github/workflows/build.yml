@@ -1,0 +1,60 @@
+name: Build Installers
+
+# Runs automatically on version tags (e.g. v1.0.0) or manually via the Actions tab.
+# Produces a Windows .exe installer and a macOS .dmg, then attaches them to a GitHub Release.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write   # needed to create/update GitHub Releases
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+            artifact_path: electron/release/*.exe
+            artifact_name: TimeMap-Windows
+
+          - os: macos-latest
+            script: dist:mac
+            artifact_path: electron/release/*.dmg
+            artifact_name: TimeMap-Mac
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm run install:all
+
+      - name: Build and package
+        run: npm run ${{ matrix.script }}
+        env:
+          # Disable automatic code-signing; sign manually for production distribution
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+      # Only attach to a GitHub Release when triggered by a version tag
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact_path }}

@@ -37,18 +37,23 @@ export function importRouter(dbPath: string, thumbsDir: string, previewDir: stri
   // POST /api/import/start
   router.post('/start', (req, res) => {
     const {
-      type, source, digikamPath, digikamRoot,
+      type, source, sources, digikamPath, digikamRoot,
       collection, dryRun = false,
       includeNoGps = false, inferGps = false,
       inferGpsWindowMin = 30,
       albumFilter, tagFilter,
     } = req.body as Record<string, unknown>;
 
+    // Normalize sources: accept sources[] (new) or legacy source string
+    const sourcePaths: string[] =
+      Array.isArray(sources) && (sources as unknown[]).length > 0 ? sources as string[] :
+      typeof source === 'string' && source ? [source] : [];
+
     if (!collection) {
       res.status(400).json({ error: 'collection is required' }); return;
     }
-    if (type === 'folder' && !source) {
-      res.status(400).json({ error: 'source is required for folder import' }); return;
+    if (type === 'folder' && sourcePaths.length === 0) {
+      res.status(400).json({ error: 'sources is required for folder import' }); return;
     }
     if (type === 'digikam' && (!digikamPath || !digikamRoot)) {
       res.status(400).json({ error: 'digikamPath and digikamRoot are required for DigiKam import' }); return;
@@ -92,9 +97,21 @@ export function importRouter(dbPath: string, thumbsDir: string, previewDir: stri
         let stats: ImportStats;
         const cancelled = () => job.cancelRequested;
         if (type === 'folder') {
-          stats = await runFolderImport(
-            source as string, collection as string, opts, onLog, onProgress, cancelled,
-          );
+          const acc: ImportStats = { imported: 0, skipped: 0, noGps: 0, missing: 0, errors: 0, total: 0 };
+          const multi = sourcePaths.length > 1;
+          for (let i = 0; i < sourcePaths.length; i++) {
+            if (job.cancelRequested) break;
+            const prefix = multi ? `[${i + 1}/${sourcePaths.length}] ` : '';
+            const s = await runFolderImport(
+              sourcePaths[i], collection as string, opts,
+              msg => onLog(prefix + msg),
+              (done, total, phase) => onProgress(done, total, prefix + phase),
+              cancelled,
+            );
+            acc.imported += s.imported; acc.skipped += s.skipped; acc.noGps  += s.noGps;
+            acc.missing  += s.missing;  acc.errors  += s.errors;  acc.total  += s.total;
+          }
+          stats = acc;
         } else {
           stats = await runDigikamImport(
             digikamPath as string, digikamRoot as string, collection as string,

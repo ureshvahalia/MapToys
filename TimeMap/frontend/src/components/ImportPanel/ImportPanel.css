@@ -138,6 +138,65 @@
   color: rgba(255, 255, 255, 0.22);
 }
 
+/* ---- Multi-source folder list ------------------------------------------- */
+
+.import-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.import-source-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.import-source-item input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.import-source-remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.import-source-remove:hover {
+  background: rgba(240, 80, 80, 0.12);
+  border-color: rgba(240, 80, 80, 0.3);
+  color: #f07070;
+}
+
+.import-source-add-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.import-source-add-btn:hover {
+  background: rgba(78, 154, 241, 0.1);
+  border-color: rgba(78, 154, 241, 0.4);
+  color: #4e9af1;
+}
+
 /* ---- Input + browse button row ------------------------------------------ */
 
 .import-input-row {

@@ -13,7 +13,7 @@
 /* ---- Panel -------------------------------------------------------------- */
 
 .fb-panel {
-  width: 480px;
+  width: 560px;
   max-width: calc(100vw - 32px);
   max-height: 72vh;
   background: rgba(14, 18, 32, 0.98);
@@ -32,7 +32,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 12px;
+  padding: 12px 14px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
@@ -57,12 +57,98 @@
 }
 .fb-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
 
-/* ---- Path bar ----------------------------------------------------------- */
+/* ---- Breadcrumb toolbar ------------------------------------------------- */
+
+.fb-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  min-height: 34px;
+  overflow: hidden;
+}
+
+.fb-up-btn {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  width: 26px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+.fb-up-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); color: #fff; }
+.fb-up-btn:disabled { opacity: 0.3; cursor: default; }
+
+.fb-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.fb-crumb {
+  display: flex;
+  align-items: center;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.fb-crumb-sep {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.fb-crumb-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  transition: color 0.15s, background 0.15s;
+}
+.fb-crumb-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+
+.fb-crumb-cur {
+  font-size: 12px;
+  font-family: monospace;
+  color: #fff;
+  font-weight: 500;
+  padding: 2px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* ---- Address bar -------------------------------------------------------- */
 
 .fb-pathbar {
   display: flex;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
@@ -76,7 +162,7 @@
   color: #fff;
   font-size: 12px;
   font-family: monospace;
-  padding: 6px 8px;
+  padding: 5px 8px;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -93,7 +179,7 @@
   color: rgba(255, 255, 255, 0.75);
   font-size: 12px;
   font-family: inherit;
-  padding: 6px 14px;
+  padding: 5px 14px;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -107,8 +193,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(78, 154, 241, 0.06);
   flex-shrink: 0;
 }
 
@@ -130,10 +217,11 @@
   color: #fff;
   font-size: 12px;
   font-family: inherit;
-  padding: 5px 14px;
+  padding: 5px 16px;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.15s;
+  font-weight: 500;
 }
 .fb-select-btn:hover { background: #3b88e0; }
 
@@ -177,13 +265,18 @@
 }
 .fb-entry:last-child { border-bottom: none; }
 .fb-entry:hover { background: rgba(255, 255, 255, 0.07); }
+.fb-file:hover  { background: rgba(78, 154, 241, 0.12); }
 
 .fb-entry-icon {
   flex-shrink: 0;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  font-size: 9px;
   width: 12px;
+  text-align: center;
 }
+
+/* Folder icon — Windows-style warm yellow */
+.fb-dir .fb-entry-icon  { color: #e8b84b; font-size: 11px; }
+.fb-file .fb-entry-icon { color: rgba(255, 255, 255, 0.3); }
 
 .fb-entry-name {
   font-size: 13px;
@@ -193,6 +286,58 @@
   white-space: nowrap;
 }
 
-.fb-dir .fb-entry-name  { color: #7fb8f5; }
-.fb-file .fb-entry-name { color: rgba(255, 255, 255, 0.85); }
-.fb-file:hover { background: rgba(78, 154, 241, 0.15); }
+.fb-dir  .fb-entry-name { color: #d4e8ff; }
+.fb-file .fb-entry-name { color: rgba(255, 255, 255, 0.82); }
+
+/* ---- Checkbox (multi-select mode) --------------------------------------- */
+
+.fb-checkbox {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: #4e9af1;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* Checked folder row gets a subtle highlight */
+.fb-entry.fb-checked {
+  background: rgba(78, 154, 241, 0.12);
+}
+.fb-entry.fb-checked:hover {
+  background: rgba(78, 154, 241, 0.2);
+}
+
+/* ---- Confirm bar (multi-select mode) ------------------------------------ */
+
+.fb-confirm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+.fb-confirm-info {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.fb-confirm-btn {
+  flex-shrink: 0;
+  background: #4e9af1;
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 6px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.fb-confirm-btn:hover:not(:disabled) { background: #3b88e0; }
+.fb-confirm-btn:disabled { opacity: 0.35; cursor: default; }

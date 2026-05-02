@@ -11,3 +11,4 @@ backend/.env
 backend.log
 frontend.log
 .pids
+electron/release/

@@ -1,0 +1,13 @@
+Place app icons here before running electron-builder:
+
+  icon.icns   macOS app icon  (1024x1024 recommended, .icns format)
+  icon.ico    Windows app icon (256x256 recommended, .ico format)
+  icon.png    Linux / fallback  (512x512 PNG)
+
+Without these files electron-builder uses the default Electron icon.
+
+Tools for generating icons:
+  - https://www.electron.build/icons  (electron-builder docs)
+  - macOS: iconutil (built-in), or https://github.com/nicehash/NiceHashQuickMiner
+  - Windows: IcoFX, GIMP, or online converters
+  - Cross-platform: https://github.com/lovell/sharp can resize/convert PNG to the formats above

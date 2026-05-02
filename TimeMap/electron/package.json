@@ -1,0 +1,66 @@
+{
+  "name": "timemap-app",
+  "productName": "TimeMap",
+  "version": "1.0.0",
+  "description": "TimeMap – photo journey map",
+  "main": "dist/main.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "electron dist/main.js",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "exifr": "^7.1.3",
+    "express": "^4.21.1",
+    "heic-convert": "^2.1.0",
+    "sharp": "^0.34.5",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.1",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.6.3"
+  },
+  "build": {
+    "appId": "com.timemap.app",
+    "productName": "TimeMap",
+    "asar": false,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      { "from": "../backend/dist", "to": "backend/dist" },
+      { "from": "../frontend/dist", "to": "frontend/dist" }
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "category": "public.app-category.photography",
+      "icon": "build/icon.icns"
+    },
+    "dmg": {
+      "title": "TimeMap"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TimeMap"
+    }
+  }
+}
