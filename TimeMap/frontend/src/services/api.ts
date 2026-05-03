@@ -53,6 +53,10 @@ export function photoUrl(artifactId: number): string {
   return `${API_BASE}/photos/${artifactId}`;
 }
 
+export function viewerUrl(artifactId: number): string {
+  return `${API_BASE}/photos/${artifactId}/viewer`;
+}
+
 export function thumbnailUrl(artifactId: number): string {
   return `${API_BASE}/photos/${artifactId}/thumbnail`;
 }

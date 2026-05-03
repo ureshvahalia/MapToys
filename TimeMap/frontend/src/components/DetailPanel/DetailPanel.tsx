@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { thumbnailUrl, photoUrl } from '../../services/api';
+import { thumbnailUrl, viewerUrl } from '../../services/api';
 import type { ArtifactProperties } from '../../services/api';
 import './DetailPanel.css';
 
@@ -36,7 +36,7 @@ export function DetailPanel({ feature, prevId, nextId, onClose, onNavigate }: Pr
         }
         <a
           className="detail-view-full"
-          href={photoUrl(feature.id)}
+          href={viewerUrl(feature.id)}
           target="_blank"
           rel="noreferrer"
         >

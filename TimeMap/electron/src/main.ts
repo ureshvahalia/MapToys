@@ -54,7 +54,7 @@ function openWindow(url: string): void {
     // Photo API URLs are served locally — open in an Electron popup so the
     // user stays in the app.  All other links (e.g. external hrefs) go to
     // the system browser.
-    if (/localhost:\d+\/api\/photos\/\d+$/.test(u)) {
+    if (/localhost:\d+\/api\/photos\/\d+\/viewer$/.test(u)) {
       return {
         action: 'allow',
         overrideBrowserWindowOptions: {
