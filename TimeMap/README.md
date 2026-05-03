@@ -35,6 +35,43 @@ Download the latest installer for your platform from the [Releases](../../releas
 
 ---
 
+## Using the Timeline
+
+The timeline bar runs along one edge of the screen. It shows the full span of time across your imported photos, and a blue highlighted window marks which part of that span is currently visible on the map.
+
+### Zooming in and out
+
+**Scroll the mouse wheel** over the timeline to zoom. Scrolling up zooms in (narrowing the time range), scrolling down zooms out (widening it). The zoom pivots around whichever point on the timeline is under your cursor, so you can aim at a specific decade or year to keep it centred.
+
+The timeline can zoom all the way from a view spanning centuries down to individual minutes. Tick marks and labels adjust automatically as you zoom.
+
+**Double-click** anywhere on the timeline to reset the zoom back to the default full view.
+
+### Scrolling through time
+
+To scroll forward or backward through time without changing the zoom level, **click and drag on the track background** — the part of the timeline that is outside the blue window. Dragging left moves earlier in time; dragging right moves later.
+
+### The blue selection window
+
+The blue window defines the active time range. Only photos whose timestamp falls inside it appear on the map.
+
+The window has three draggable parts:
+
+- **Center area** — drag to slide the entire window forward or backward while keeping its size (time span) unchanged. The window cannot be dragged past the edges of the current view.
+- **Left/top handle** (circle at the start of the window) — drag to move the start of the range independently, expanding or shrinking the window from one end.
+- **Right/bottom handle** (circle at the end of the window) — drag to move the end of the range independently.
+
+The two handles cannot cross each other, so the window always represents a valid time range. There is no snapping — the handles move freely and continuously.
+
+### Moving the timeline to a different edge
+
+The timeline can be docked to any edge of the screen.
+
+- **Drag method** — click and hold the grip icon (the six-dot handle at the side of the bar) and drag it toward any screen edge. A ghost outline shows where the timeline will land; release to snap it there.
+- **Arrow buttons** — hover over the timeline to reveal four arrow buttons. Click one to instantly move the timeline to that edge.
+
+---
+
 ## What TimeMap Stores on Your System
 
 TimeMap creates one folder in your home directory to keep its working data:
