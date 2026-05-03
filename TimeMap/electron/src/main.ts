@@ -50,8 +50,26 @@ function openWindow(url: string): void {
   // Only show the window once content is ready to avoid a blank flash
   win.once('ready-to-show', () => win?.show());
 
-  // Open any target="_blank" links in the system browser, not a new Electron window
   win.webContents.setWindowOpenHandler(({ url: u }) => {
+    // Photo API URLs are served locally — open in an Electron popup so the
+    // user stays in the app.  All other links (e.g. external hrefs) go to
+    // the system browser.
+    if (/localhost:\d+\/api\/photos\/\d+$/.test(u)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 1280,
+          height: 960,
+          title: 'TimeMap — Photo',
+          backgroundColor: '#0a0d18',
+          autoHideMenuBar: true,
+          webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+          },
+        },
+      };
+    }
     void shell.openExternal(u);
     return { action: 'deny' };
   });
