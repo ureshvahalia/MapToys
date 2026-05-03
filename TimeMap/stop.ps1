@@ -19,7 +19,7 @@ foreach ($port in @(3001, 5173, 5174, 5175)) {
 
 $escaped = [regex]::Escape($scriptDir)
 Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -and $_.CommandLine -match $escaped } |
+    Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -and $_.CommandLine -match $escaped } |
     ForEach-Object {
         Write-Host "  Killing PID $($_.ProcessId) ($($_.Name))"
         Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue

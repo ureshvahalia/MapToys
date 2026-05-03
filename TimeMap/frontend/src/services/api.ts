@@ -57,9 +57,6 @@ export function thumbnailUrl(artifactId: number): string {
   return `${API_BASE}/photos/${artifactId}/thumbnail`;
 }
 
-export function previewUrl(artifactId: number): string {
-  return `${API_BASE}/photos/${artifactId}/preview`;
-}
 
 // ---- Import API -------------------------------------------------------------
 

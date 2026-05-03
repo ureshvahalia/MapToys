@@ -22,7 +22,6 @@ export async function startServer(options: ServerOptions = {}): Promise<void> {
   const DATA_DIR    = options.dataDir ?? process.env.TIMEMAP_DATA_DIR ?? path.join(os.homedir(), '.timemap');
   const DB_PATH     = path.join(DATA_DIR, 'timemap.db');
   const THUMBS_DIR  = path.join(DATA_DIR, 'thumbs');
-  const PREVIEW_DIR = path.join(DATA_DIR, 'previews');
 
   fs.mkdirSync(DATA_DIR,   { recursive: true });
   fs.mkdirSync(THUMBS_DIR, { recursive: true });
@@ -42,9 +41,9 @@ export async function startServer(options: ServerOptions = {}): Promise<void> {
   app.use((req, _res, next) => { console.log(`${req.method} ${req.url}`); next(); });
 
   app.use('/api/artifacts',   artifactsRouter());
-  app.use('/api/photos',      photosRouter(PREVIEW_DIR));
+  app.use('/api/photos',      photosRouter());
   app.use('/api/collections', collectionsRouter());
-  app.use('/api/import',      importRouter(DB_PATH, THUMBS_DIR, PREVIEW_DIR));
+  app.use('/api/import',      importRouter(DB_PATH, THUMBS_DIR));
   app.use('/api/fs',          fsRouter());
 
   // Serve the built frontend in production (must come after API routes)

@@ -36,10 +36,11 @@ Write-Host 'Stopping any running TimeMap servers...'
 
 foreach ($port in @(3001, 5173, 5174, 5175)) { Stop-Port $port }
 
-# Also kill by command-line pattern, scoped to this project directory
+# Also kill node.exe processes whose CommandLine references this project directory.
+# Scoped to node.exe only — avoids accidentally matching the PowerShell host running this script.
 $escaped = [regex]::Escape($scriptDir)
 Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -and $_.CommandLine -match $escaped } |
+    Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -and $_.CommandLine -match $escaped } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 Start-Sleep -Seconds 1
@@ -56,7 +57,7 @@ $backendProc = Start-Process `
     -FilePath         'cmd.exe' `
     -ArgumentList     '/c', "npm --prefix backend run dev > `"$backendLog`" 2>&1" `
     -WorkingDirectory $scriptDir `
-    -NoNewWindow `
+    -WindowStyle      Hidden `
     -PassThru
 
 Write-Host 'Starting frontend...'
@@ -64,7 +65,7 @@ $frontendProc = Start-Process `
     -FilePath         'cmd.exe' `
     -ArgumentList     '/c', "npm --prefix frontend run dev > `"$frontendLog`" 2>&1" `
     -WorkingDirectory $scriptDir `
-    -NoNewWindow `
+    -WindowStyle      Hidden `
     -PassThru
 
 # ── 3. Wait for both TCP ports to open (max 30 s) ────────────────────────────

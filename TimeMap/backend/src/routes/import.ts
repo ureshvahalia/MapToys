@@ -31,7 +31,7 @@ function makeJobId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function importRouter(dbPath: string, thumbsDir: string, previewDir: string) {
+export function importRouter(dbPath: string, thumbsDir: string) {
   const router = Router();
 
   // POST /api/import/start
@@ -194,12 +194,10 @@ export function importRouter(dbPath: string, thumbsDir: string, previewDir: stri
       db.run('DELETE FROM collections');
       persist();
 
-      // Remove all cached thumbnails and previews
-      for (const dir of [thumbsDir, previewDir]) {
-        if (fs.existsSync(dir)) {
-          for (const f of fs.readdirSync(dir)) {
-            if (f.endsWith('.jpg')) fs.unlinkSync(path.join(dir, f));
-          }
+      // Remove cached thumbnails
+      if (fs.existsSync(thumbsDir)) {
+        for (const f of fs.readdirSync(thumbsDir)) {
+          if (f.endsWith('.jpg')) fs.unlinkSync(path.join(thumbsDir, f));
         }
       }
 
