@@ -65,8 +65,8 @@ html,body{height:100%;background:#0a0d18;color:#e0e0e0;font-family:-apple-system
       infoDate.textContent=dt.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})+
         ' · '+dt.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
     }
-    if(d.prevId!=null){btnPrev.disabled=false;btnPrev.onclick=function(){location.href='/api/photos/'+d.prevId+'/viewer';};}
-    if(d.nextId!=null){btnNext.disabled=false;btnNext.onclick=function(){location.href='/api/photos/'+d.nextId+'/viewer';};}
+    if(d.prevId!=null){btnPrev.disabled=false;btnPrev.onclick=function(){new BroadcastChannel('timemap').postMessage({type:'photo-navigate',id:d.prevId});location.href='/api/photos/'+d.prevId+'/viewer';};}
+    if(d.nextId!=null){btnNext.disabled=false;btnNext.onclick=function(){new BroadcastChannel('timemap').postMessage({type:'photo-navigate',id:d.nextId});location.href='/api/photos/'+d.nextId+'/viewer';};}
   }).catch(function(){infoTitle.textContent='Photo '+id;});
   document.addEventListener('keydown',function(e){
     if(e.key==='ArrowLeft'&&!btnPrev.disabled)btnPrev.click();

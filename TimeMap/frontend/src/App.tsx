@@ -6,7 +6,7 @@ import { DetailPanel } from './components/DetailPanel/DetailPanel';
 import { ImportPanel } from './components/ImportPanel/ImportPanel';
 import { ImportStatusBar } from './components/ImportStatusBar/ImportStatusBar';
 import { CollectionsPanel } from './components/CollectionsPanel/CollectionsPanel';
-import { fetchArtifacts, cancelImportJob } from './services/api';
+import { fetchArtifacts, fetchArtifactById, cancelImportJob } from './services/api';
 import type { ArtifactFeature, ArtifactProperties, ImportJob } from './services/api';
 import type { Projection, TrackEdge } from './types';
 import './App.css';
@@ -195,6 +195,21 @@ export default function App() {
         },
       });
 
+      // Selected photo highlight — rendered above all other layers
+      map.addSource('selected', { type: 'geojson', data: EMPTY_GEOJSON });
+      map.addLayer({
+        id: 'selected-dot',
+        type: 'circle',
+        source: 'selected',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#ff9800',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#fff',
+          'circle-opacity': 1,
+        },
+      });
+
       // ---- Interactions -----------------------------------------------------
 
       // Hover dot → popup with thumbnail + label
@@ -287,6 +302,42 @@ export default function App() {
     localStorage.setItem('timeline-edge', edge);
   };
 
+  // ---- Selected dot highlight ---------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const update = () => {
+      const source = map.getSource('selected') as maplibregl.GeoJSONSource | undefined;
+      if (!source) return;
+      source.setData(selectedProps ? {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [selectedProps.longitude, selectedProps.latitude] },
+          properties: {},
+        }],
+      } : EMPTY_GEOJSON);
+    };
+    if (map.isStyleLoaded()) update();
+    else map.once('load', update);
+  }, [selectedProps]);
+
+  // ---- Sync from the View Full popup via BroadcastChannel -----------------
+  useEffect(() => {
+    const channel = new BroadcastChannel('timemap');
+    channel.onmessage = async (e: MessageEvent<{ type: string; id: number }>) => {
+      if (e.data?.type !== 'photo-navigate') return;
+      const { id } = e.data;
+      let props = visibleFeatures.current.find(f => f.properties.id === id)?.properties ?? null;
+      if (!props) {
+        try { props = await fetchArtifactById(id); } catch { return; }
+      }
+      setSelectedProps(props);
+      mapRef.current?.flyTo({ center: [props.longitude, props.latitude], speed: 1.2 });
+    };
+    return () => channel.close();
+  }, []);
+
   // ---- Detail panel prev/next --------------------------------------------
   // Filter against current viewport bounds at render time so that stale or
   // wide-bounds fetch data never leaks into the navigation chain.
@@ -309,7 +360,10 @@ export default function App() {
 
   const handleNavigate = (id: number) => {
     const f = visibleFeatures.current.find(f => f.properties.id === id);
-    if (f) setSelectedProps(f.properties);
+    if (f) {
+      setSelectedProps(f.properties);
+      mapRef.current?.flyTo({ center: [f.properties.longitude, f.properties.latitude], speed: 1.2 });
+    }
   };
 
   // ---- Render --------------------------------------------------------------

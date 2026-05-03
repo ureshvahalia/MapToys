@@ -49,6 +49,12 @@ export async function fetchArtifacts(params: ViewportParams, signal?: AbortSigna
   return res.json() as Promise<ArtifactsGeoJSON>;
 }
 
+export async function fetchArtifactById(id: number): Promise<ArtifactProperties> {
+  const res = await fetch(`${API_BASE}/artifacts/${id}`);
+  if (!res.ok) throw new Error(`Artifact fetch failed: ${res.status}`);
+  return res.json() as Promise<ArtifactProperties>;
+}
+
 export function photoUrl(artifactId: number): string {
   return `${API_BASE}/photos/${artifactId}`;
 }
