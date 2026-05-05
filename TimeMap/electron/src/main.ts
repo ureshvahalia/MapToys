@@ -16,6 +16,15 @@ function resourcePath(...parts: string[]): string {
 
 let win: BrowserWindow | null = null;
 
+function photosHelperPath(): string | null {
+  if (process.platform !== 'darwin') return null;
+  // In production: extraResources lands one level above app.getAppPath()
+  // In dev: compiled binary lives next to the source in electron/
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'photos-helper')
+    : path.join(__dirname, '../../photos-helper');
+}
+
 async function launchServer(): Promise<void> {
   const entry     = resourcePath('backend', 'dist', 'index.js');
   const staticDir = resourcePath('frontend', 'dist');
@@ -25,9 +34,9 @@ async function launchServer(): Promise<void> {
   // from the node_modules/ sitting alongside it in resources/app/.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mod = require(entry) as {
-    startServer: (opts: { port: number; staticDir: string }) => Promise<void>;
+    startServer: (opts: { port: number; staticDir: string; photosHelperPath: string | null }) => Promise<void>;
   };
-  await mod.startServer({ port: PORT, staticDir });
+  await mod.startServer({ port: PORT, staticDir, photosHelperPath: photosHelperPath() });
 }
 
 function openWindow(url: string): void {

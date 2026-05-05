@@ -4,16 +4,19 @@ import {
   fetchImportJob,
   cancelImportJob,
   fetchDigikamAlbums,
+  fetchPhotosAlbums,
+  fetchSystemInfo,
   reloadDb,
   resetImportData,
   type ImportJob,
   type DigiKamAlbum,
+  type PhotosAlbum,
   type StartImportParams,
 } from '../../services/api';
 import { FileBrowser } from '../FileBrowser/FileBrowser';
 import './ImportPanel.css';
 
-type ImportType  = 'folder' | 'digikam';
+type ImportType  = 'photos' | 'folder' | 'digikam';
 type PanelPhase  = 'form' | 'running' | 'done' | 'cancelled' | 'error';
 
 interface Props {
@@ -28,16 +31,25 @@ interface Props {
 export function ImportPanel({
   visible, onClose, onMapRefresh, onJobStarted, onJobUpdate, onJobEnded,
 }: Props) {
+  // ---- System info (Photos availability) ------------------------------------
+  const [photosAvailable, setPhotosAvailable] = useState(false);
+
   // ---- Form state ------------------------------------------------------------
-  const [importType,   setImportType]   = useState<ImportType>('folder');
-  const [sources,      setSources]      = useState<string[]>([]);
-  const [digikamPath,  setDigikamPath]  = useState('');
-  const [digikamRoot,  setDigikamRoot]  = useState('');
-  const [albumFilter,  setAlbumFilter]  = useState('');
-  const [tagFilter,    setTagFilter]    = useState('');
-  const [collection,   setCollection]   = useState('');
-  const [inferGps,     setInferGps]     = useState(false);
-  const [includeNoGps, setIncludeNoGps] = useState(false);
+  const [importType,      setImportType]      = useState<ImportType>('folder');
+  const [sources,         setSources]         = useState<string[]>([]);
+  const [digikamPath,     setDigikamPath]     = useState('');
+  const [digikamRoot,     setDigikamRoot]     = useState('');
+  const [albumFilter,     setAlbumFilter]     = useState('');
+  const [tagFilter,       setTagFilter]       = useState('');
+  const [collection,      setCollection]      = useState('');
+  const [inferGps,        setInferGps]        = useState(false);
+  const [includeNoGps,    setIncludeNoGps]    = useState(false);
+
+  // ---- Photos album state ----------------------------------------------------
+  const [photosAlbums,      setPhotosAlbums]      = useState<PhotosAlbum[]>([]);
+  const [photosAlbumsLoading, setPhotosAlbumsLoading] = useState(false);
+  const [photosAlbumsError,   setPhotosAlbumsError]   = useState<string | null>(null);
+  const [selectedAlbumId,   setSelectedAlbumId]   = useState<string>('__all__');
 
   // ---- File browser ----------------------------------------------------------
   type BrowserTarget = 'sourceAdd' | 'digikamPath' | 'digikamRoot';
@@ -52,7 +64,7 @@ export function ImportPanel({
 
   const dirOf = (p: string) => p.replace(/[\\/][^\\/]*$/, '') || '';
 
-  // ---- Album browser ---------------------------------------------------------
+  // ---- DigiKam album browser -------------------------------------------------
   const [albums,        setAlbums]        = useState<DigiKamAlbum[]>([]);
   const [albumsLoading, setAlbumsLoading] = useState(false);
   const [albumsError,   setAlbumsError]   = useState<string | null>(null);
@@ -70,11 +82,41 @@ export function ImportPanel({
   const logRef  = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Stable refs for callbacks (avoids stale closures in setInterval)
+  // Stable refs for callbacks
   const onJobUpdateRef = useRef(onJobUpdate);
   useEffect(() => { onJobUpdateRef.current = onJobUpdate; }, [onJobUpdate]);
   const collectionRef = useRef(collection);
   useEffect(() => { collectionRef.current = collection; }, [collection]);
+
+  // ---- Load system info when panel first opens -------------------------------
+  const systemLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!visible || systemLoadedRef.current) return;
+    systemLoadedRef.current = true;
+    fetchSystemInfo()
+      .then(info => {
+        setPhotosAvailable(info.photosAvailable);
+        if (info.photosAvailable) setImportType('photos');
+      })
+      .catch(() => { /* non-Mac or helper not present */ });
+  }, [visible]);
+
+  // ---- Load Photos albums when Photos tab becomes active --------------------
+  useEffect(() => {
+    if (importType !== 'photos' || !photosAvailable || photosAlbums.length > 0) return;
+    setPhotosAlbumsLoading(true);
+    setPhotosAlbumsError(null);
+    fetchPhotosAlbums()
+      .then(list => {
+        setPhotosAlbums(list);
+        if (list.length > 0) {
+          setSelectedAlbumId(list[0].id);
+          setCollection(list[0].name);
+        }
+      })
+      .catch(err => setPhotosAlbumsError(String(err)))
+      .finally(() => setPhotosAlbumsLoading(false));
+  }, [importType, photosAvailable, photosAlbums.length]);
 
   // ---- Polling ---------------------------------------------------------------
   useEffect(() => {
@@ -99,7 +141,7 @@ export function ImportPanel({
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [job?.log.length]);
 
-  // ---- Album browser ---------------------------------------------------------
+  // ---- DigiKam album browser -------------------------------------------------
   const handleBrowseAlbums = async () => {
     if (!digikamPath) return;
     setAlbumsLoading(true);
@@ -119,21 +161,31 @@ export function ImportPanel({
   // ---- Start import ----------------------------------------------------------
   const handleStart = async (dryRun: boolean) => {
     setStartErr(null);
-    const params: StartImportParams = {
-      type: importType,
-      collection,
-      dryRun,
-      inferGps,
-      includeNoGps,
-      ...(importType === 'folder'
-        ? { sources }
-        : {
-            digikamPath,
-            digikamRoot,
-            albumFilter: albumFilter || undefined,
-            tagFilter:   tagFilter   || undefined,
-          }),
-    };
+    let params: StartImportParams;
+
+    if (importType === 'photos') {
+      params = {
+        type: 'photos',
+        collection,
+        dryRun,
+        includeNoGps,
+        albumId: selectedAlbumId !== '__all__' ? selectedAlbumId : undefined,
+      };
+    } else if (importType === 'folder') {
+      params = { type: 'folder', collection, dryRun, inferGps, includeNoGps, sources };
+    } else {
+      params = {
+        type: 'digikam',
+        collection,
+        dryRun,
+        inferGps,
+        includeNoGps,
+        digikamPath,
+        digikamRoot,
+        albumFilter: albumFilter || undefined,
+        tagFilter:   tagFilter   || undefined,
+      };
+    }
 
     try {
       const { jobId: id } = await startImport(params);
@@ -141,7 +193,6 @@ export function ImportPanel({
       setJob(null);
       setPhase('running');
       onJobUpdate?.(null, 'running', collection);
-      // Hand off to parent — overlay will be hidden, status bar will appear
       onJobStarted(id, collection);
     } catch (err) {
       setStartErr(String(err));
@@ -193,15 +244,15 @@ export function ImportPanel({
 
   // ---- Validation ------------------------------------------------------------
   const canStart = collection.trim() !== '' && (
-    importType === 'folder'
+    importType === 'photos'
+      ? true
+      : importType === 'folder'
       ? sources.length > 0 && sources.every(s => s.trim() !== '')
       : digikamPath.trim() !== '' && digikamRoot.trim() !== ''
   );
 
-  // ---- Hidden while job runs in background -----------------------------------
   if (!visible) return null;
 
-  // ---- Render ----------------------------------------------------------------
   return (
     <div className="import-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="import-panel">
@@ -216,11 +267,19 @@ export function ImportPanel({
           <>
             {/* Type tabs */}
             <div className="import-tabs">
+              {photosAvailable && (
+                <button
+                  className={`import-tab${importType === 'photos' ? ' active' : ''}`}
+                  onClick={() => setImportType('photos')}
+                >
+                  Photos
+                </button>
+              )}
               <button
                 className={`import-tab${importType === 'folder' ? ' active' : ''}`}
                 onClick={() => setImportType('folder')}
               >
-                Folder scan
+                Folder
               </button>
               <button
                 className={`import-tab${importType === 'digikam' ? ' active' : ''}`}
@@ -232,6 +291,62 @@ export function ImportPanel({
 
             <div className="import-form">
 
+              {/* ---- Photos tab ---- */}
+              {importType === 'photos' && (
+                <>
+                  <div className="import-field">
+                    <span>Album</span>
+                    {photosAlbumsLoading && (
+                      <div className="import-log-muted" style={{ fontSize: 12, padding: '6px 0' }}>
+                        Loading albums…
+                      </div>
+                    )}
+                    {photosAlbumsError && (
+                      <div className="import-error-inline">{photosAlbumsError}</div>
+                    )}
+                    {photosAlbums.length > 0 && (
+                      <div className="import-album-list">
+                        {photosAlbums.map(a => (
+                          <button
+                            key={a.id}
+                            className={`import-album-item${selectedAlbumId === a.id ? ' selected' : ''}`}
+                            onClick={() => {
+                              setSelectedAlbumId(a.id);
+                              setCollection(a.name);
+                            }}
+                          >
+                            <span className="import-album-path">{a.name}</span>
+                            <span className="import-album-count">{a.count.toLocaleString()}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="import-field">
+                    <span>Collection name</span>
+                    <input
+                      type="text"
+                      value={collection}
+                      onChange={e => setCollection(e.target.value)}
+                      placeholder="My Photos"
+                    />
+                  </label>
+
+                  <div className="import-options">
+                    <label className="import-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={includeNoGps}
+                        onChange={e => setIncludeNoGps(e.target.checked)}
+                      />
+                      Include photos without GPS coordinates
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* ---- Folder tab ---- */}
               {importType === 'folder' && (
                 <div className="import-field">
                   <span>Source directories</span>
@@ -246,7 +361,7 @@ export function ImportPanel({
                             next[i] = e.target.value;
                             setSources(next);
                           }}
-                          placeholder="C:\path\to\photos"
+                          placeholder="/path/to/photos"
                           spellCheck={false}
                         />
                         <button
@@ -270,6 +385,7 @@ export function ImportPanel({
                 </div>
               )}
 
+              {/* ---- DigiKam tab ---- */}
               {importType === 'digikam' && (
                 <>
                   <label className="import-field">
@@ -366,37 +482,45 @@ export function ImportPanel({
                 </>
               )}
 
-              <label className="import-field">
-                <span>Collection name</span>
-                <input
-                  type="text"
-                  value={collection}
-                  onChange={e => setCollection(e.target.value)}
-                  placeholder="My Travels 2024"
-                />
-              </label>
+              {/* Collection name — shared by folder + digikam */}
+              {importType !== 'photos' && (
+                <label className="import-field">
+                  <span>Collection name</span>
+                  <input
+                    type="text"
+                    value={collection}
+                    onChange={e => setCollection(e.target.value)}
+                    placeholder="My Travels 2024"
+                  />
+                </label>
+              )}
 
-              <div className="import-options">
-                <label className="import-checkbox">
-                  <input type="checkbox" checked={inferGps} onChange={e => setInferGps(e.target.checked)} />
-                  Infer GPS from nearby geotagged photos (±30 min)
-                </label>
-                <label className="import-checkbox">
-                  <input type="checkbox" checked={includeNoGps} onChange={e => setIncludeNoGps(e.target.checked)} />
-                  Include photos without GPS coordinates
-                </label>
-              </div>
+              {/* GPS options — shared by folder + digikam */}
+              {importType !== 'photos' && (
+                <div className="import-options">
+                  <label className="import-checkbox">
+                    <input type="checkbox" checked={inferGps} onChange={e => setInferGps(e.target.checked)} />
+                    Infer GPS from nearby geotagged photos (±30 min)
+                  </label>
+                  <label className="import-checkbox">
+                    <input type="checkbox" checked={includeNoGps} onChange={e => setIncludeNoGps(e.target.checked)} />
+                    Include photos without GPS coordinates
+                  </label>
+                </div>
+              )}
 
               {startErr && <div className="import-error-inline">{startErr}</div>}
 
               <div className="import-actions">
-                <button
-                  className="import-btn-secondary"
-                  disabled={!canStart}
-                  onClick={() => handleStart(true)}
-                >
-                  Dry run
-                </button>
+                {importType !== 'photos' && (
+                  <button
+                    className="import-btn-secondary"
+                    disabled={!canStart}
+                    onClick={() => handleStart(true)}
+                  >
+                    Dry run
+                  </button>
+                )}
                 <button
                   className="import-btn-primary"
                   disabled={!canStart}

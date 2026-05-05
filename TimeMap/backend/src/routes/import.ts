@@ -3,9 +3,11 @@ import path from 'node:path';
 import { Router } from 'express';
 import { openDb, getDb, persist } from '../db/connection';
 import { initDb } from '../db/schema';
+import { execFile } from 'node:child_process';
 import {
   runFolderImport,
   runDigikamImport,
+  runPhotosImport,
   listDigikamAlbums,
   type ImportOptions,
   type ImportStats,
@@ -31,7 +33,7 @@ function makeJobId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function importRouter(dbPath: string, thumbsDir: string) {
+export function importRouter(dbPath: string, thumbsDir: string, photosHelperPath: string | null) {
   const router = Router();
 
   // POST /api/import/start
@@ -42,6 +44,7 @@ export function importRouter(dbPath: string, thumbsDir: string) {
       includeNoGps = false, inferGps = false,
       inferGpsWindowMin = 30,
       albumFilter, tagFilter,
+      albumId,
     } = req.body as Record<string, unknown>;
 
     // Normalize sources: accept sources[] (new) or legacy source string
@@ -58,8 +61,11 @@ export function importRouter(dbPath: string, thumbsDir: string) {
     if (type === 'digikam' && (!digikamPath || !digikamRoot)) {
       res.status(400).json({ error: 'digikamPath and digikamRoot are required for DigiKam import' }); return;
     }
-    if (type !== 'folder' && type !== 'digikam') {
-      res.status(400).json({ error: 'type must be "folder" or "digikam"' }); return;
+    if (type === 'photos' && !photosHelperPath) {
+      res.status(400).json({ error: 'Photos import is not available on this platform' }); return;
+    }
+    if (type !== 'folder' && type !== 'digikam' && type !== 'photos') {
+      res.status(400).json({ error: 'type must be "folder", "digikam", or "photos"' }); return;
     }
 
     const jobId = makeJobId();
@@ -96,7 +102,15 @@ export function importRouter(dbPath: string, thumbsDir: string) {
       try {
         let stats: ImportStats;
         const cancelled = () => job.cancelRequested;
-        if (type === 'folder') {
+        if (type === 'photos') {
+          stats = await runPhotosImport(
+            photosHelperPath!,
+            albumId as string | undefined,
+            collection as string,
+            opts,
+            onLog, onProgress, cancelled,
+          );
+        } else if (type === 'folder') {
           const acc: ImportStats = { imported: 0, skipped: 0, noGps: 0, missing: 0, errors: 0, total: 0 };
           const multi = sourcePaths.length > 1;
           for (let i = 0; i < sourcePaths.length; i++) {
@@ -158,6 +172,29 @@ export function importRouter(dbPath: string, thumbsDir: string) {
     if (job.status !== 'running') { res.status(400).json({ error: 'job is not running' }); return; }
     job.cancelRequested = true;
     res.json({ ok: true });
+  });
+
+  // GET /api/import/photos-albums
+  router.get('/photos-albums', (req, res) => {
+    if (!photosHelperPath) {
+      res.status(404).json({ error: 'Photos import not available on this platform' }); return;
+    }
+    execFile(photosHelperPath, ['list-albums'], (err, stdout, stderr) => {
+      if (err) {
+        const msg = stderr.trim();
+        if (msg === 'permission-denied') {
+          res.status(403).json({ error: 'Photos access denied. Grant access in System Settings → Privacy & Security → Photos.' });
+        } else {
+          res.status(500).json({ error: msg || String(err) });
+        }
+        return;
+      }
+      try {
+        res.json(JSON.parse(stdout));
+      } catch {
+        res.status(500).json({ error: 'Invalid response from photos helper' });
+      }
+    });
   });
 
   // GET /api/import/albums?digikam=<path>

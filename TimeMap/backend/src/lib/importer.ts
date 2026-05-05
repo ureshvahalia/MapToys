@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { spawn } from 'node:child_process';
 import { getDb, queryOne, execute, persist } from '../db/connection';
 import initSqlJs from 'sql.js';
 import type { Database as SqlJsDb } from 'sql.js';
@@ -506,4 +507,157 @@ export async function runDigikamImport(
   if (!opts.dryRun) persist();
   if (isCancelled?.()) onLog(`Import cancelled after ${stats.imported} imported.`);
   return stats;
+}
+
+// ---- Photos (macOS PhotoKit helper) ----------------------------------------
+
+export interface PhotosRecord {
+  uuid:         string;
+  lat:          number | null;
+  lng:          number | null;
+  takenAt:      string | null;
+  filePath:     string | null;
+  width:        number;
+  height:       number;
+  thumbWritten: boolean;
+  error:        string | null;
+}
+
+function processPhotosRecord(
+  rec:          PhotosRecord,
+  collectionId: number,
+  opts:         ImportOptions,
+): 'imported' | 'skipped' | 'no-gps' {
+  // Use real file path when available; fall back to stable photos:// URI for iCloud-only
+  const filePath = rec.filePath ?? `photos://${rec.uuid}`;
+  if (alreadyImported(filePath)) return 'skipped';
+
+  const lat = rec.lat ?? null;
+  const lng = rec.lng ?? null;
+  if (lat === null && !opts.includeNoGps) return 'no-gps';
+
+  const timestamp = rec.takenAt ?? new Date().toISOString();
+  const precision = rec.takenAt ? 'second' : 'day';
+
+  if (opts.dryRun) return 'imported';
+
+  const thumbPath = rec.thumbWritten
+    ? path.join(opts.thumbsDir, `${rec.uuid}.jpg`)
+    : null;
+
+  dbInsertPhoto({
+    collectionId,
+    filePath,
+    thumbPath,
+    latitude:  lat,
+    longitude: lng,
+    timestamp,
+    precision,
+    title:    rec.uuid.slice(0, 8),
+    make:     null,
+    model:    null,
+    width:    rec.width  || null,
+    height:   rec.height || null,
+    exifJson: JSON.stringify({ photosUuid: rec.uuid, locationSource: lat ? 'gps' : 'none' }),
+  });
+
+  return 'imported';
+}
+
+export async function runPhotosImport(
+  helperPath:     string,
+  albumId:        string | undefined,
+  collectionName: string,
+  opts:           ImportOptions,
+  onLog:          (msg: string) => void,
+  onProgress:     (done: number, total: number, phase: string) => void,
+  isCancelled?:   () => boolean,
+): Promise<ImportStats> {
+  return new Promise((resolve, reject) => {
+    const helperArgs = ['import-photos', opts.thumbsDir];
+    if (albumId) helperArgs.push(albumId);
+
+    const proc   = spawn(helperPath, helperArgs);
+    const stats: ImportStats = { imported: 0, skipped: 0, noGps: 0, missing: 0, errors: 0, total: 0 };
+    let done        = 0;
+    let lastPersist = 0;
+    let buffer      = '';
+    let headerSeen  = false;
+
+    const collectionId = getOrCreateCollection(collectionName, opts.dryRun);
+
+    proc.stdout.on('data', (chunk: Buffer) => {
+      buffer += chunk.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line) continue;
+
+        if (!headerSeen && line.startsWith('TOTAL ')) {
+          stats.total = parseInt(line.slice(6), 10);
+          onLog(`Found ${stats.total} photo(s) in Photos library.`);
+          headerSeen = true;
+          continue;
+        }
+
+        if (isCancelled?.()) { proc.kill(); return; }
+
+        try {
+          const rec = JSON.parse(line) as PhotosRecord;
+          if (rec.error) {
+            stats.errors++;
+            onLog(`ERROR: ${rec.uuid}: ${rec.error}`);
+          } else {
+            const status = processPhotosRecord(rec, collectionId, opts);
+            if (status === 'imported') {
+              stats.imported++;
+              const date = rec.takenAt ? rec.takenAt.slice(0, 10) : 'no date';
+              onLog(`imported: ${rec.uuid.slice(0, 8)}… (${date})`);
+            } else if (status === 'skipped') {
+              stats.skipped++;
+            } else if (status === 'no-gps') {
+              stats.noGps++;
+            }
+          }
+          done++;
+          onProgress(done, stats.total || done, 'Importing');
+          if (!opts.dryRun && done - lastPersist >= PERSIST_EVERY) {
+            persist();
+            lastPersist = done;
+          }
+        } catch (e) {
+          stats.errors++;
+          onLog(`ERROR parsing record: ${e}`);
+        }
+      }
+    });
+
+    proc.stderr.on('data', (chunk: Buffer) => {
+      const msg = chunk.toString().trim();
+      if (msg === 'permission-denied') {
+        proc.kill();
+        reject(new Error(
+          'Photos access denied. Go to System Settings → Privacy & Security → Photos and allow TimeMap.',
+        ));
+      } else if (msg === 'album-not-found') {
+        proc.kill();
+        reject(new Error('Album not found in Photos library.'));
+      } else if (msg) {
+        onLog(`[helper] ${msg}`);
+      }
+    });
+
+    proc.on('close', () => {
+      if (!opts.dryRun) persist();
+      if (isCancelled?.()) onLog(`Import cancelled after ${stats.imported} imported.`);
+      stats.total = Math.max(stats.total, done);
+      resolve(stats);
+    });
+
+    proc.on('error', (err: Error) => {
+      reject(new Error(`Could not start photos helper: ${err.message}`));
+    });
+  });
 }

@@ -43,6 +43,12 @@ jobs:
       - name: Install dependencies
         run: npm run install:all
 
+      - name: Build Swift photos helper (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: |
+          swiftc electron/photos-helper.swift -o electron/photos-helper
+          chmod +x electron/photos-helper
+
       - name: Build and package
         run: npm run ${{ matrix.script }}
         env:

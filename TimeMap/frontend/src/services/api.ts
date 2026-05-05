@@ -71,13 +71,14 @@ export function thumbnailUrl(artifactId: number): string {
 // ---- Import API -------------------------------------------------------------
 
 export interface StartImportParams {
-  type:              'folder' | 'digikam';
+  type:              'folder' | 'digikam' | 'photos';
   collection:        string;
   sources?:          string[];
   digikamPath?:      string;
   digikamRoot?:      string;
   albumFilter?:      string;
   tagFilter?:        string;
+  albumId?:          string;
   inferGps?:         boolean;
   includeNoGps?:     boolean;
   dryRun?:           boolean;
@@ -110,6 +111,17 @@ export interface DigiKamAlbum {
   photoCount: number;
 }
 
+export interface PhotosAlbum {
+  id:    string;
+  name:  string;
+  count: number;
+}
+
+export interface SystemInfo {
+  platform:        string;
+  photosAvailable: boolean;
+}
+
 export async function startImport(params: StartImportParams): Promise<{ jobId: string }> {
   const res = await fetch(`${API_BASE}/import/start`, {
     method:  'POST',
@@ -127,6 +139,21 @@ export async function fetchImportJob(jobId: string): Promise<ImportJob> {
   const res = await fetch(`${API_BASE}/import/jobs/${jobId}`);
   if (!res.ok) throw new Error(`Job fetch failed: ${res.status}`);
   return res.json() as Promise<ImportJob>;
+}
+
+export async function fetchSystemInfo(): Promise<SystemInfo> {
+  const res = await fetch('/api/system');
+  if (!res.ok) throw new Error(`System info fetch failed: ${res.status}`);
+  return res.json() as Promise<SystemInfo>;
+}
+
+export async function fetchPhotosAlbums(): Promise<PhotosAlbum[]> {
+  const res = await fetch(`${API_BASE}/import/photos-albums`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText })) as { error: string };
+    throw new Error(err.error ?? res.statusText);
+  }
+  return res.json() as Promise<PhotosAlbum[]>;
 }
 
 export async function fetchDigikamAlbums(digikamPath: string): Promise<DigiKamAlbum[]> {

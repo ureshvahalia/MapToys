@@ -44,7 +44,15 @@
         { "target": "zip", "arch": ["x64", "arm64"] }
       ],
       "category": "public.app-category.photography",
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSPhotoLibraryUsageDescription": "TimeMap reads your Photos library to display your photos on the map."
+      },
+      "extraResources": [
+        { "from": "photos-helper", "to": "photos-helper" }
+      ]
     },
     "win": {
       "target": [

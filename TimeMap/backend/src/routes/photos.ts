@@ -121,6 +121,12 @@ export function photosRouter(): Router {
     );
     if (!photo) { res.status(404).end(); return; }
 
+    // iCloud-only photos have a photos:// URI rather than a real path
+    if (photo.file_path.startsWith('photos://')) {
+      res.status(503).json({ error: 'This photo is stored in iCloud and is not available locally.' });
+      return;
+    }
+
     const ext = path.extname(photo.file_path).toLowerCase();
 
     // Browser-native formats: serve as-is

@@ -12,9 +12,10 @@ import { importRouter } from './routes/import';
 import { fsRouter } from './routes/fs';
 
 export interface ServerOptions {
-  port?:      number;
-  dataDir?:   string;
-  staticDir?: string;  // path to built frontend — enables production static serving
+  port?:              number;
+  dataDir?:           string;
+  staticDir?:         string;  // path to built frontend — enables production static serving
+  photosHelperPath?:  string | null;
 }
 
 export async function startServer(options: ServerOptions = {}): Promise<void> {
@@ -40,10 +41,19 @@ export async function startServer(options: ServerOptions = {}): Promise<void> {
   app.use(express.json());
   app.use((req, _res, next) => { console.log(`${req.method} ${req.url}`); next(); });
 
+  const helperPath = options.photosHelperPath ?? null;
+
+  app.get('/api/system', (_req, res) => {
+    res.json({
+      platform:       process.platform,
+      photosAvailable: !!(helperPath && fs.existsSync(helperPath)),
+    });
+  });
+
   app.use('/api/artifacts',   artifactsRouter());
   app.use('/api/photos',      photosRouter());
   app.use('/api/collections', collectionsRouter());
-  app.use('/api/import',      importRouter(DB_PATH, THUMBS_DIR));
+  app.use('/api/import',      importRouter(DB_PATH, THUMBS_DIR, helperPath));
   app.use('/api/fs',          fsRouter());
 
   // Serve the built frontend in production (must come after API routes)
