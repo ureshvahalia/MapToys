@@ -1,7 +1,7 @@
 {
   "name": "timemap-app",
   "productName": "TimeMap",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "TimeMap – photo journey map",
   "main": "dist/main.js",
   "private": true,
