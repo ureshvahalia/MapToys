@@ -28,7 +28,7 @@ jobs:
 
           - os: macos-latest
             script: dist:mac
-            artifact_path: TimeMap/electron/release/*.zip
+            artifact_path: TimeMap/electron/release/*.dmg
             artifact_name: TimeMap-Mac
 
     runs-on: ${{ matrix.os }}
