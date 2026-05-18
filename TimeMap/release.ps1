@@ -31,10 +31,10 @@ git add electron/package.json
 git commit -m "Bump version to $Version"
 git push
 
-# Tag and push — this triggers the GitHub Actions build
+# Tag and push - this triggers the GitHub Actions build
 git tag $tag
 git push origin $tag
 
 Write-Host ""
-Write-Host "Released $tag — GitHub Actions will build the installers." -ForegroundColor Green
+Write-Host "Released $tag - GitHub Actions will build the installers." -ForegroundColor Green
 Write-Host "Track progress: gh run watch" -ForegroundColor DarkGray
