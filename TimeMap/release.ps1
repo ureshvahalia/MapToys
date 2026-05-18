@@ -22,7 +22,8 @@ if (git tag --list $tag) {
 $pkgPath = Join-Path $PSScriptRoot "electron\package.json"
 $pkg = Get-Content $pkgPath -Raw | ConvertFrom-Json
 $pkg.version = $Version
-$pkg | ConvertTo-Json -Depth 10 | Set-Content $pkgPath -Encoding utf8NoBOM
+$json = $pkg | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($pkgPath, $json, [System.Text.UTF8Encoding]::new($false))
 
 Write-Host "Bumped electron/package.json to $Version"
 
