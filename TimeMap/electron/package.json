@@ -21,6 +21,7 @@
     "sql.js": "^1.12.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "@types/node": "^22.9.1",
     "electron": "^35.0.0",
     "electron-builder": "^25.0.0",
@@ -30,6 +31,7 @@
     "appId": "com.timemap.app",
     "productName": "TimeMap",
     "asar": false,
+    "afterSign": "notarize.js",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -43,6 +45,8 @@
       "target": [
         { "target": "dmg", "arch": ["x64", "arm64"] }
       ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
       "category": "public.app-category.photography",
       "icon": "build/icon.icns",
       "entitlements": "build/entitlements.mac.plist",

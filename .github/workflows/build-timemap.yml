@@ -56,17 +56,44 @@ jobs:
           "
           echo "Set electron version to $VERSION"
 
-      - name: Build Swift photos helper (macOS only)
+      - name: Import certificate (macOS only)
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          echo "$MACOS_CERT_P12" | tr -d ' \n\r' | base64 --decode > cert.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Build and sign Swift photos helper (macOS only)
         if: matrix.os == 'macos-latest'
         run: |
           swiftc electron/photos-helper.swift -o electron/photos-helper
           chmod +x electron/photos-helper
+          APP_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | awk '{print $2}')
+          codesign --force --verify --verbose \
+            --sign "$APP_IDENTITY" \
+            --options runtime \
+            --entitlements electron/build/entitlements.helper.plist \
+            electron/photos-helper
 
       - name: Build and package
         run: npm run ${{ matrix.script }}
         env:
-          # Disable automatic code-signing; sign manually for production distribution
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Staple DMGs (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: |
+          for dmg in electron/release/*.dmg; do
+            xcrun stapler staple "$dmg"
+          done
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
