@@ -31,7 +31,6 @@
     "appId": "com.timemap.app",
     "productName": "TimeMap",
     "asar": false,
-    "afterSign": "notarize.js",
     "directories": {
       "output": "release",
       "buildResources": "build"
