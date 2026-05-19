@@ -350,6 +350,63 @@ Photos are deduplicated by absolute file path (`photos.file_path`). Reimporting 
 
 ## 8. Deployment
 
+### Releasing a new version
+
+Use the release script from the `TimeMap/` directory (Windows PowerShell):
+
+```powershell
+.\release.ps1 1.0.4
+```
+
+This script:
+1. Bumps `electron/package.json` to the new version and commits it
+2. Pushes the commit to `main`
+3. Creates and pushes a `v1.0.4` tag, which triggers the GitHub Actions build
+
+Track the build: `gh run watch`
+
+When CI succeeds, the GitHub Release for `v1.0.4` will have three artifacts attached:
+- `TimeMap-Setup-1.0.4.exe` — Windows NSIS installer
+- `TimeMap-1.0.4-arm64.dmg` — macOS Apple Silicon, signed + notarized
+- `TimeMap-1.0.4.dmg` — macOS Intel, signed + notarized
+
+### CI build pipeline
+
+The workflow is at `.github/workflows/build-timemap.yml`. For each platform it:
+
+1. Installs all dependencies (`npm run install:all`)
+2. Syncs the version number from the git tag into `electron/package.json`
+3. **macOS only:** imports the Developer ID Application certificate into a temporary keychain
+4. **macOS only:** compiles `electron/photos-helper.swift` and signs the binary with `electron/build/entitlements.helper.plist` (Photos library entitlement only)
+5. Runs `npm run dist:mac` or `npm run dist:win` — electron-builder signs the `.app` via the keychain
+6. **macOS only:** submits each `.dmg` to Apple's notarytool, waits for approval, then staples the notarization ticket to the DMG
+7. Attaches all artifacts to the GitHub Release
+
+### macOS code signing — GitHub secrets required
+
+| Secret | Value |
+|---|---|
+| `MACOS_CERT_P12` | Base64-encoded Developer ID Application `.p12` certificate |
+| `MACOS_CERT_PASSWORD` | Password set when exporting the `.p12` |
+| `APPLE_ID` | Apple ID email address |
+| `APPLE_APP_PASSWORD` | App-specific password from appleid.apple.com |
+| `APPLE_TEAM_ID` | Team ID from developer.apple.com → Membership |
+
+To base64-encode the `.p12` on WSL:
+```bash
+base64 -w 0 DeveloperIDApplication.p12 | clip.exe
+```
+
+The Developer ID Application certificate is shared with WatchNext — the same `.p12` and credentials work for both projects.
+
+### Key signing files
+
+| File | Purpose |
+|---|---|
+| `electron/build/entitlements.mac.plist` | Main app entitlements: JIT, unsigned memory, Photos library |
+| `electron/build/entitlements.helper.plist` | Swift helper entitlements: Photos library only |
+| `electron/notarize.js` | afterSign hook stub (currently bypassed — notarization runs in CI after DMG creation) |
+
 ### VPS deployment (Phase 2)
 
 Same VPS as Great-Circle (`apps.vahalia.com`), target path `apps.vahalia.com/timemap/`.

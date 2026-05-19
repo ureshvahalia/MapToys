@@ -7,7 +7,8 @@ A desktop application for exploring your photo collection on a world map, filter
 Download the latest installer for your platform from the [Releases](../../releases) page. No other software is required.
 
 - **Windows** — run `TimeMap-Setup-x.x.x.exe` and follow the prompts
-- **macOS** — open the `.zip`, drag `TimeMap.app` to your Applications folder
+- **macOS (Apple Silicon)** — open `TimeMap-x.x.x-arm64.dmg`, drag `TimeMap.app` to the Applications folder, then eject the disk image
+- **macOS (Intel)** — open `TimeMap-x.x.x.dmg`, drag `TimeMap.app` to the Applications folder, then eject the disk image
 
 ## Features
 
