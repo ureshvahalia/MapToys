@@ -240,30 +240,21 @@ After the first deploy, every `git push origin main` triggers a new deployment a
 
 ## 7. Deploying Updates
 
-### App changes
+All deployment is handled by `deploy.sh` in `/mnt/e/SoftwareDev/Maps/`:
+
 ```bash
-cd Project1
-VITE_BASE_PATH=/antipode/ npm run build
-rsync -avz --delete dist/ vahalia@VPS_IP:/var/www/apps/antipode/
+cd /mnt/e/SoftwareDev/Maps
+
+bash deploy.sh app    # build and deploy the great-circles app
+bash deploy.sh home   # deploy the apps home page only
+bash deploy.sh        # both (default)
 ```
 
-### Home page changes only
-```bash
-rsync -avz ../apps-home/index.html vahalia@VPS_IP:/var/www/apps/
-```
+The script copies source files to `/tmp/gc-build` on the Linux filesystem before building. This is required because the project lives on an NTFS Windows drive (`/mnt/e/`) which does not support symlinks — npm needs symlinks for `node_modules/.bin/` entries (`tsc`, `vite`, etc.).
 
-### Both
-```bash
-cd Project1
-VITE_BASE_PATH=/antipode/ npm run build
-rsync -avz --delete dist/ vahalia@VPS_IP:/var/www/apps/antipode/
-rsync -avz ../apps-home/index.html vahalia@VPS_IP:/var/www/apps/
-```
-
-### Note on base paths
-`vite.config.ts` reads `VITE_BASE_PATH` from the environment at build time.
-- VPS build: set `VITE_BASE_PATH=/antipode/` (app lives in a subdirectory)
-- Vercel build: no variable needed — defaults to `/` (app is at the domain root)
+### Prerequisites
+- SSH key (`~/.ssh/id_ed25519`) must be authorised on both GitHub and the VPS (`vahalia@199.19.75.229`). The git remote uses SSH (`git@github.com:ureshvahalia/MapToys.git`).
+- To add the key to a new machine: `ssh-copy-id vahalia@199.19.75.229` for the VPS; add `~/.ssh/id_ed25519.pub` contents at github.com/settings/keys for GitHub.
 
 ### Commit to git
 ```bash
@@ -278,7 +269,9 @@ git push origin main
 
 ### High priority
 - **iOS deployment via Capacitor** — framework already chosen, see Section 2 for steps. Requires Apple Developer account ($99/year) for App Store; TestFlight is free for limited distribution.
-- **deploy.sh script** — wrap build + both rsync commands into a single script to reduce friction.
+
+### Globe trackball
+3D trackball drag for globe mode is implemented on the `feature/globe-trackball` branch. It was merged into `main` and then reverted. To re-enable it: `git merge feature/globe-trackball`.
 
 ### Geocoding
 - **Upgrade to paid geocoding** if Nominatim feels slow or results are poor. Stadia Maps (Pelias) has a proper autocomplete endpoint and is the natural next step. Change is isolated to `src/services/geocoding.ts`.
